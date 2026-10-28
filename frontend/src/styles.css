@@ -103,32 +103,54 @@ textarea:focus-visible {
   height: 42px;
   display: grid;
   place-items: center;
-  color: white;
-  background: linear-gradient(140deg, var(--accent-strong), #a39cff);
-  border-radius: 14px;
-  box-shadow: 0 5px 20px #7770f533;
+  color: #171511;
+  background: linear-gradient(145deg, #e4d0a5, #b8965b);
+  border: 1px solid #e7d6b2;
+  border-radius: 13px;
+  box-shadow: 0 4px 16px rgba(198, 165, 107, 0.16);
 }
 
-.rail-active,
-.theme-toggle {
+
+/* Active Dashboard button */
+.rail-active {
   margin-top: 48px;
   width: 42px;
   height: 42px;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: rgba(198, 165, 107, 0.12);
+  color: #d6b77d;
+  border: 1px solid rgba(198, 165, 107, 0.28);
+  box-shadow: inset 0 0 12px rgba(198, 165, 107, 0.035);
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
 }
 
+/* Dashboard hover effect */
+.rail-active:hover {
+  background: rgba(198, 165, 107, 0.19);
+  border-color: rgba(198, 165, 107, 0.48);
+  transform: translateY(-1px);
+}
+
+/* Theme toggle button */
 .theme-toggle {
   margin-top: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--muted);
   border: 1px solid transparent;
-  transition: background .2s, transform .2s;
+  transition: background 0.2s, transform 0.2s, color 0.2s;
 }
 
+/* Theme toggle hover effect */
 .theme-toggle:hover {
   background: var(--surface-hover);
+  color: var(--ink);
   transform: translateY(-1px);
 }
 

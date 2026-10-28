@@ -1,105 +1,313 @@
 # Career Log — Job Application Tracker
 
-A responsive MERN application for recording applications, tracking status changes, and managing follow-ups. The API generates application IDs and enforces workflow and validation rules on the server.
+A responsive MERN stack application for recording job applications, tracking status changes, and managing follow-ups. The application uses a React frontend, an Express.js backend, and MongoDB for persistent storage. Application IDs, validation, status transitions, duplicate detection, and follow-up rules are handled by the backend.
+
+## Features
+
+- **Dashboard:** View job applications and application statistics.
+- **Create applications:** Record company name, job role, job type, applied date, expected salary, and notes.
+- **Application IDs:** Automatically generate IDs in the `JA-XXX-###` format.
+- **Status tracking:** Track applications through Applied, Interview, Offer, Accepted, Declined, and Rejected.
+- **Status history:** Maintain a timeline of status changes with dates and optional notes.
+- **Follow-up reminders:** Calculate the follow-up date as seven days after the applied date and identify overdue applications.
+- **Search and filters:** Search by company and filter applications by status.
+- **Duplicate prevention:** Prevent duplicate active applications for the same company and role, ignoring case differences.
+- **Edit and delete rules:** Protect application IDs, applied dates, and applications that cannot be deleted under the workflow rules.
+- **Responsive interface:** Use the dashboard on desktop and mobile screens.
+
+## Technology Stack
+
+- **Frontend:** React, Vite, JavaScript, CSS
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB with Mongoose
+- **Version control:** Git and GitHub
+- **Deployment:** Vercel for the frontend and Render for the backend
 
 ## Requirements
 
-- Node.js 18 or newer and npm
-- A MongoDB Atlas test database (free tier is sufficient)
+- Node.js 18 or newer
+- npm
+- A MongoDB Atlas database or a local MongoDB instance
+- Git
 
-## MongoDB Atlas setup
+## MongoDB Atlas Setup
 
-1. Sign in to MongoDB Atlas and create a free shared cluster for this exam.
-2. Create a database user with a new, test-only password. Do not reuse personal or production credentials.
-3. In **Network Access**, allow your current IP address for the exam.
-4. Choose **Connect → Drivers → Node.js** and copy the connection string. Replace the password placeholder and add `/job_tracker` before the query string.
-5. Copy `backend/.env.example` to `backend/.env`, then put the URI in `MONGODB_URI`. The checked-in example is deliberately a placeholder, not a working credential. Keep real credentials out of GitHub.
+1. Sign in to MongoDB Atlas and create a free shared cluster.
+2. Create a database user with a new, test-only password.
+3. Under **Network Access**, configure access for your development environment. For a deployed backend, configure the access required by your hosting setup.
+4. Open **Connect → Drivers → Node.js** and copy the MongoDB connection string.
+5. Replace the password placeholder with your database user's password and add `/job_tracker` before the query string.
+6. Copy `backend/.env.example` to `backend/.env`.
+7. Add your connection string to `MONGODB_URI` in `backend/.env`.
 
-## Run locally (PowerShell)
+**Security:** Never commit `backend/.env` or publish database passwords, JWT secrets, or other credentials. Keep real secrets in environment variables on your deployment platform.
 
-From the project root:
+## Run Locally
+
+Open PowerShell in the project root directory.
+
+### 1. Configure the backend
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
 notepad backend/.env
+```
+
+Add the required environment variables using the names expected by the backend configuration. Set `MONGODB_URI` to your MongoDB connection string.
+
+### 2. Install dependencies
+
+```powershell
 npm install --prefix backend
 npm install --prefix frontend
 ```
 
-In `backend/.env`, set `MONGODB_URI` to the test Atlas URI. Then open **two PowerShell terminals**, both in this project folder:
+If the project root has a configured helper script, dependencies may also be installed from the root as documented in its `package.json`.
+
+### 3. Start the backend
+
+Open a PowerShell terminal in the project root and run:
 
 ```powershell
-# Terminal 1 — API
 npm run dev --prefix backend
 ```
 
+The backend should run at:
+
+`http://localhost:5000`
+
+### 4. Start the frontend
+
+Open a second PowerShell terminal in the project root and run:
+
 ```powershell
-# Terminal 2 — React app
 npm run dev --prefix frontend
 ```
 
-Open <http://localhost:5173>. The API health endpoint is <http://localhost:5000/api/health>. If you prefer one command, install the root helper and run `npm run dev` from the project root.
+Open the local frontend URL shown by Vite, normally:
 
-## Features and rules
+`http://localhost:5173`
 
-- Create an application with company, role, job type, applied date, optional expected salary, and notes.
-- The backend creates immutable `JA-XXX-###` IDs, with an independent, persistent sequence for each normalized company.
-- Every new record starts at **Applied** and has an initial status history entry.
-- Allowed transitions: Applied → Interview or Rejected; Interview → Offer or Rejected; Offer → Hired or Rejected. Rejected and Hired are final.
-- Every status change appends a dated timeline entry. Follow-up date is computed as applied date + 7 days; `isOverdue` is true only when the application remains Applied past that date.
-- Company and role matching is case-insensitive. An active duplicate (Applied, Interview, or Offer) returns HTTP 409. Rejected/Hired applications do not block a later application.
-- Applied date and IDs cannot be edited. Delete is allowed for Applied, Rejected, and Hired records; Interview and Offer records are protected.
-- List filters are applied by the backend. Search matches company names without case sensitivity. Dashboard counts come from the backend.
-- API responses consistently use `{ "success": boolean, "message": string, "data": any }`.
+### 5. Check the API health
 
-## API reference
+Open:
 
-Base URL: `http://localhost:5000/api`
+`http://localhost:5000/api/health`
+
+A successful response indicates whether the API and database are connected.
+
+## Application Workflow and Business Rules
+
+### Statuses
+
+The application supports these statuses:
+
+- `Applied`
+- `Interview`
+- `Offer`
+- `Accepted`
+- `Declined`
+- `Rejected`
+
+### Allowed status transitions
+
+| Current status | Allowed next status |
+|---|---|
+| Applied | Interview, Rejected |
+| Interview | Offer, Rejected |
+| Offer | Accepted, Declined |
+| Accepted | No further transitions |
+| Declined | No further transitions |
+| Rejected | No further transitions |
+
+Accepted, Declined, and Rejected are final statuses.
+
+### Application validation
+
+- Company name and job role are required.
+- Job type must be `Full-time`, `Internship`, or `Contract`.
+- Applied date cannot be in the future.
+- Expected salary and notes are optional.
+- Application IDs are generated by the backend and cannot be edited.
+- Applied date cannot be changed after creation.
+- Each status change adds an entry to the status history.
+
+### Application IDs
+
+The backend generates application IDs in the `JA-XXX-###` format, using the first three letters of the company name and a sequence number for that company. For example, an application for Acme may receive an ID such as `JA-ACM-001`.
+
+### Follow-up reminders
+
+The follow-up date is calculated as:
+
+`Applied Date + 7 days`
+
+An application is overdue when it remains in the Applied status after its follow-up date. Overdue applications should be clearly highlighted in the interface.
+
+### Duplicate applications
+
+The backend checks company name and job role without case sensitivity. A duplicate active application for the same company and role is rejected with HTTP `409 Conflict`.
+
+Applied, Interview, and Offer are active statuses. Accepted, Declined, and Rejected are final statuses and do not block a later application for the same company and role.
+
+### Editing and deleting
+
+- Company name, job role, job type, expected salary, and notes may be edited.
+- Application ID and applied date remain immutable.
+- Deletion is allowed only for Applied, Accepted, Declined, and Rejected applications.
+- Applications in Interview or Offer cannot be deleted.
+
+## API Reference
+
+**Local API base URL:** `http://localhost:5000/api`
+
+All API responses use a consistent JSON structure:
+
+```json
+{
+  "success": true,
+  "message": "Request completed successfully",
+  "data": {}
+}
+```
 
 | Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/health` | API and database status |
-| GET | `/applications` | List; optional `?status=Applied` and `?company=Acme` |
-| GET | `/applications/counts` | Count records grouped by status |
-| POST | `/applications` | Create a validated application; ID/status/history set by backend |
-| GET | `/applications/:id` | Get one application with virtual follow-up fields |
-| PUT | `/applications/:id` | Edit company, role, type, salary, and notes; applied date/status/ID are immutable |
-| PATCH | `/applications/:id/status` | Validate transition and append to status history; JSON `{ "status": "Interview", "note": "Screening call" }` |
-| DELETE | `/applications/:id` | Delete only when status is Applied, Rejected, or Hired |
+|---|---|---|
+| GET | `/health` | Check API and database status |
+| GET | `/applications` | List applications; supports status and company filters |
+| GET | `/applications/counts` | Retrieve application counts grouped by status |
+| POST | `/applications` | Create a validated application |
+| GET | `/applications/:id` | Retrieve one application |
+| PUT | `/applications/:id` | Update editable application fields |
+| PATCH | `/applications/:id/status` | Validate and update application status |
+| DELETE | `/applications/:id` | Delete an application when its status permits deletion |
 
-All invalid input receives a JSON error response. Duplicate active applications return `409 Conflict`.
+### Query parameters
 
-## Screenshots for the submission README
+The applications list supports filters such as:
 
-After launching the app and adding at least one record, capture two screenshots:
+- `status` — filter by application status.
+- `company` — search company names without case sensitivity.
 
-1. **Dashboard:** show the summary cards and application list (Windows: `Win + Shift + S`). Save as `screenshots/dashboard.png`.
-2. **Application detail:** open a record so its status history timeline and follow-up date are visible. Save as `screenshots/application-details.png`.
+Example:
 
-Create the folder with `New-Item -ItemType Directory -Force screenshots`, add the two images, and link them here before submitting:
-
-```md
-![Dashboard](screenshots/dashboard.png)
-![Application details and status timeline](screenshots/application-details.png)
+```text
+GET /api/applications?status=Applied
+GET /api/applications?company=Acme
 ```
 
-The screenshots are intentionally left for the exam run, since they need to show your own working Atlas-backed app and real interaction.
+### Update status example
 
-## Five meaningful commits across the exam
+```json
+{
+  "status": "Interview",
+  "note": "Screening call scheduled"
+}
+```
 
-Make these during the exam as each stage is completed (adjust the timing to your remaining time; do not make five back-to-back commits at the end):
+The backend validates each requested transition before updating the application.
 
-1. `chore: scaffold MERN application`
-2. `feat: add MongoDB application model and API`
-3. `feat: enforce application workflow and follow-up rules`
-4. `feat: build responsive application dashboard`
-5. `docs: add setup guide and submission screenshots`
+### HTTP status codes
 
-Example after each milestone:
+- `200 OK` — successful request.
+- `201 Created` — application created.
+- `400 Bad Request` — invalid input or invalid status transition.
+- `404 Not Found` — application does not exist.
+- `409 Conflict` — duplicate active application.
+
+The exact response message depends on the result of the request.
+
+## Screenshots
+
+Add screenshots of the running application before submitting the project.
+
+### Dashboard
+
+Save a screenshot showing the dashboard, summary cards, and application list as `screenshots/dashboard.png`.
+
+![Job Application Tracker Dashboard](screenshots/dashboard.png)
+
+### Application Details and Status History
+
+Save a screenshot showing an application's details, status history, and follow-up information as `screenshots/application-details.png`.
+
+![Application Details and Status Timeline](screenshots/application-details.png)
+
+To create the screenshots folder, run this command from the project root:
 
 ```powershell
-git add .
-git commit -m "feat: add MongoDB application model and API"
+New-Item -ItemType Directory -Force screenshots
 ```
 
-Do not commit the populated `backend/.env`. Push your repository to GitHub and submit its URL before the exam portal closes.
+Capture screenshots using `Win + Shift + S`, save the images using the filenames above, and ensure the screenshots show your own running application.
+
+## Project Structure
+
+```text
+job-application-tracker/
+├── backend/
+│   ├── src/
+│   │   ├── models/
+│   │   └── routes/
+│   ├── .env.example
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   └── package.json
+├── screenshots/
+├── .gitignore
+└── README.md
+```
+
+The structure above is a simplified overview; the project may contain additional files.
+
+## Git and Version Control
+
+The project is maintained using Git and GitHub. Commits record meaningful development milestones, including project setup, backend workflow implementation, frontend workflow implementation, and interface styling.
+
+Useful commands:
+
+```powershell
+git status
+git log --oneline
+git add README.md
+git commit -m "docs: update project documentation"
+git push origin main
+```
+
+Never commit populated environment files or credentials.
+
+## Deployment
+
+The intended deployment setup is:
+
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Database:** MongoDB Atlas
+
+Configure the frontend API URL using the environment variable supported by the frontend:
+
+`VITE_API_URL`
+
+For a deployed frontend, set it to the deployed backend API base URL, for example:
+
+`https://YOUR-BACKEND-DOMAIN/api`
+
+Replace the example with your actual deployed backend URL.
+
+Configure the backend's MongoDB connection string and any other required secrets in the Render environment settings. Configure CORS to permit requests from the deployed frontend domain.
+
+**Live frontend:** Add your deployed Vercel URL here.
+
+**Live API:** Add your deployed Render API URL here.
+
+## Future Improvements
+
+- Add pagination for large application lists.
+- Provide additional analytics and application trends.
+- Add optional reminders for upcoming follow-ups.
+- Improve accessibility and automated test coverage.
+
+## Author
+
+Developed as a MERN stack project to demonstrate full-stack development, REST API design, database integration, validation, workflow enforcement, and responsive user interface development.
